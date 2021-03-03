@@ -5,13 +5,14 @@
 **更细**
  - 升级besttrace核心版本，避免3月15日的失效提醒
  - 加入新的测试节点
- - 
 **一键脚本**
 
-       #下载脚本
+    #下载脚本
+    
     wget https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcnf.sh
 
     #运行脚本（再次检查也仅需运行下面代码）
+    
     bash jcnf.sh
 
 
