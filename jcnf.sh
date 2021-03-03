@@ -33,7 +33,7 @@ directory(){
 	cd /home/testrace
 }
 install(){
-	[[ ! -d /home/testrace/besttrace ]] && wget https://github.com/Netflixxp/jcnfbesttrace/releases/download/v0303/BestTrace.zip && uzip -zxf BestTrace.zip && rm BestTrace.zip
+	[[ ! -d /home/testrace/besttrace ]] && wget https://github.com/Netflixxp/jcnfbesttrace/releases/download/v0303/BestTrace.zip && unzip -zxf BestTrace.zip && rm BestTrace.zip
 	[[ ! -d /home/testrace/besttrace ]] && echo -e "${Error} download failed, please check!" && exit 1
 	chmod -R +x /home/testrace
 }
