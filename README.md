@@ -12,7 +12,7 @@
  **一键脚本**
  
     #下载脚本
-    wget -O https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcnf.sh
+    wget https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcnf.sh -O jcnf.sh
     
 
     #运行脚本（再次检查也仅需运行下面代码）
