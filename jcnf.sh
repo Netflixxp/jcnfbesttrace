@@ -6,11 +6,10 @@ Info="${Green_font}[Info]${Font_suffix}"
 Error="${Red_font}[Error]${Font_suffix}"
 echo -e "${Green_font}
 #======================================
-# Project: testrace
-# Version: 1.2.1
-# Author: nanqinlang
-# Blog:   https://sometimesnaive.org
-# Github: https://github.com/nanqinlang
+# Project: jctestrace
+# Version: 0.0.1
+# Blog:   https://ybfl.xyz
+# Github: https://github.com/Netflixxp
 #======================================
 ${Font_suffix}"
 
@@ -91,7 +90,7 @@ set_alternative(){
 	[[ "${ISP}" == "4" ]] && node_4
 }
 node_1(){
-	echo -e "1.上海电信(天翼云)\n2.厦门电信CN2\n3.湖北襄阳电信\n4.江西南昌电信\n5.广东深圳电信\n6.广州电信(天翼云)" && read -p "输入数字以选择:" node
+	echo -e "1.上海电信(天翼云)\n2.厦门电信CN2\n3.湖北襄阳电信\n4.江西南昌电信\n5.广东深圳电信\n6.广州电信(天翼云)\n7.云南昆明电信" && read -p "输入数字以选择:" node
 
 	while [[ ! "${node}" =~ ^[1-6]$ ]]
 		do
@@ -105,9 +104,10 @@ node_1(){
 	[[ "${node}" == "4" ]] && ISP_name="江西南昌电信"	     && ip=182.98.238.226
 	[[ "${node}" == "5" ]] && ISP_name="广东深圳电信"	     && ip=119.147.52.35
 	[[ "${node}" == "6" ]] && ISP_name="广州电信(天翼云)" && ip=14.215.116.1
+	[[ "${node}" == "6" ]] && ISP_name="云南昆明电信"         && ip=116.55.247.129
 }
 node_2(){
-	echo -e "1.西藏拉萨联通\n2.重庆联通\n3.河南郑州联通\n4.安徽合肥联通\n5.江苏南京联通\n6.浙江杭州联通" && read -p "输入数字以选择:" node
+	echo -e "1.西藏拉萨联通\n2.重庆联通\n3.河南郑州联通\n4.安徽合肥联通\n5.江苏南京联通\n6.浙江杭州联通\n7.云南昆明联通" && read -p "输入数字以选择:" node
 
 	while [[ ! "${node}" =~ ^[1-6]$ ]]
 		do
@@ -121,9 +121,10 @@ node_2(){
 	[[ "${node}" == "4" ]] && ISP_name="安徽合肥联通" && ip=112.122.10.26
 	[[ "${node}" == "5" ]] && ISP_name="江苏南京联通" && ip=58.240.53.78
 	[[ "${node}" == "6" ]] && ISP_name="浙江杭州联通" && ip=101.71.241.238
+	[[ "${node}" == "6" ]] && ISP_name="云南昆明联通" && ip=14.204.149.193
 }
 node_3(){
-	echo -e "1.上海移动\n2.四川成都移动\n3.安徽合肥移动\n4.浙江杭州移动" && read -p "输入数字以选择:" node
+	echo -e "1.上海移动\n2.四川成都移动\n3.安徽合肥移动\n4.浙江杭州移动\n5.云南昆明移动" && read -p "输入数字以选择:" node
 
 	while [[ ! "${node}" =~ ^[1-4]$ ]]
 		do
@@ -135,6 +136,7 @@ node_3(){
 	[[ "${node}" == "2" ]] && ISP_name="四川成都移动" && ip=183.221.247.9
 	[[ "${node}" == "3" ]] && ISP_name="安徽合肥移动" && ip=120.209.140.60
 	[[ "${node}" == "4" ]] && ISP_name="浙江杭州移动" && ip=112.17.0.106
+	[[ "${node}" == "4" ]] && ISP_name="云南昆明移动" && ip=39.130.140.2
 }
 node_4(){
 	ISP_name="北京教育网" && ip=202.205.6.30
