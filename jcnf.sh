@@ -182,6 +182,22 @@ result_all(){
 	echo -e "${Info} 测试路由 到 ${ISP_name} 完成 ！"
 }
 
+test_all(){
+	result_all	'101.227.255.45'	'上海电信(天翼云)'
+	result_all	'117.28.254.129'	'厦门电信CN2'
+
+	result_all	'101.71.241.238'	'浙江杭州联通'
+
+	result_all	'112.17.0.106'		'浙江杭州移动'
+
+	result_all	'202.205.6.30'		'北京教育网'
+
+	echo -e "${Info} 四网路由快速测试 已完成 ！"
+}
+
+naifei(){
+	yum install -y curl 2> /dev/null || apt install -y curl $$ bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/NF/main/nf.sh)
+}
 
 
 check_system
@@ -205,7 +221,7 @@ read -p "输入数字以选择:" function
 	elif [[ "${function}" == "2" ]]; then
 		test_all | tee -a -i /home/testrace/testrace.log 2>/dev/null
 	elif [[ "${function}" == "4" ]]; then
-		bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/NF/main/nf.sh)
+		naifei
 	else
 		test_single
 	fi
