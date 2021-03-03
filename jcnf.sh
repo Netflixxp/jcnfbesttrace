@@ -195,11 +195,6 @@ test_all(){
 	echo -e "${Info} 四网路由快速测试 已完成 ！"
 }
 
-naifei(){
-	yum install -y curl 2> /dev/null || apt install -y curl $$ bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/NF/main/nf.sh)
-}
-
-
 check_system
 check_root
 directory
@@ -207,7 +202,7 @@ install
 cd besttrace
 
 echo -e "${Info} 选择你要使用的功能: "
-echo -e "1.选择一个运营商进行测试\n2.四网路由快速测试\n3.手动输入 ip 进行测试\n4.服务器Netflix解锁测试"
+echo -e "1.选择一个运营商进行测试\n2.四网路由快速测试\n3.手动输入 ip 进行测试"
 read -p "输入数字以选择:" function
 
 	while [[ ! "${function}" =~ ^[1-3]$ ]]
@@ -220,8 +215,6 @@ read -p "输入数字以选择:" function
 		test_alternative
 	elif [[ "${function}" == "2" ]]; then
 		test_all | tee -a -i /home/testrace/testrace.log 2>/dev/null
-	elif [[ "${function}" == "4" ]]; then
-		naifei
 	else
 		test_single
 	fi
