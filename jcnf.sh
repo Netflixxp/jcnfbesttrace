@@ -205,7 +205,7 @@ read -p "输入数字以选择:" function
 	elif [[ "${function}" == "2" ]]; then
 		test_all | tee -a -i /home/testrace/testrace.log 2>/dev/null
 	elif [[ "${function}" == "4" ]]; then
-		yum install -y curl 2> /dev/null || apt install -y curl&& bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/NF/main/nf.sh)
+		bash <(curl -sSL https://raw.githubusercontent.com/Netflixxp/NF/main/nf.sh)
 	else
 		test_single
 	fi
