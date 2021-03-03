@@ -5,17 +5,16 @@
 **更细**
  - 升级besttrace核心版本，避免3月15日的失效提醒
  - 加入新的测试节点
-**一键脚本**
-
+ 
+ **一键脚本**
+ 
     #下载脚本
-    
     wget https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcnf.sh
+    
 
     #运行脚本（再次检查也仅需运行下面代码）
-    
     bash jcnf.sh
-
-
+    
 **功能说明**
 脚本的安装目录位于 /home/testrace
 测试完成并退出脚本后，会生成测试的记录文件于 /home/testrace/testrace.log
