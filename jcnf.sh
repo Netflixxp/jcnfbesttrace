@@ -7,7 +7,7 @@ Error="${Red_font}[Error]${Font_suffix}"
 echo -e "${Green_font}
 #======================================
 # Project: jctestrace
-# Version: 0.0.1
+# Version: 0.0.2
 # Blog:   https://ybfl.xyz
 # Github: https://github.com/Netflixxp
 #======================================
@@ -49,7 +49,7 @@ test_single(){
 			echo -e "${Info} 请重新输入" && read -p "输入 ip 地址:" ip
 		done
 
-	./besttrace -q 1 ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
+	./besttrace -q 1 -g cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
 
 	repeat_test_single
 }
@@ -143,7 +143,7 @@ node_4(){
 }
 result_alternative(){
 	echo -e "${Info} 测试路由 到 ${ISP_name} 中 ..."
-	./besttrace -q 1 ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
+	./besttrace -q 1 -g cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
 	echo -e "${Info} 测试路由 到 ${ISP_name} 完成 ！"
 
 	repeat_test_alternative
@@ -178,7 +178,7 @@ test_all(){
 result_all(){
 	ISP_name=$2
 	echo -e "${Info} 测试路由 到 ${ISP_name} 中 ..."
-	./besttrace -q 1 $1
+	./besttrace -q 1 -g cn $1
 	echo -e "${Info} 测试路由 到 ${ISP_name} 完成 ！"
 }
 
