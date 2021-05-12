@@ -49,7 +49,7 @@ test_single(){
 			echo -e "${Info} 请重新输入" && read -p "输入 ip 地址:" ip
 		done
 
-	./besttrace -q 1 -g cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
+	./besttrace -q 1 cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
 
 	repeat_test_single
 }
@@ -116,7 +116,7 @@ node_2(){
 		done
 
 	[[ "${node}" == "1" ]] && ISP_name="西藏拉萨联通" && ip=221.13.70.244
-	[[ "${node}" == "2" ]] && ISP_name="重庆联通"	 && ip=113.207.32.65
+	[[ "${node}" == "2" ]] && ISP_name="重庆联通"     && ip=113.207.32.65
 	[[ "${node}" == "3" ]] && ISP_name="河南郑州联通" && ip=61.168.23.74
 	[[ "${node}" == "4" ]] && ISP_name="安徽合肥联通" && ip=112.122.10.26
 	[[ "${node}" == "5" ]] && ISP_name="江苏南京联通" && ip=58.240.53.78
@@ -143,7 +143,7 @@ node_4(){
 }
 result_alternative(){
 	echo -e "${Info} 测试路由 到 ${ISP_name} 中 ..."
-	./besttrace -q 1 -g cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
+	./besttrace -q 1 cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
 	echo -e "${Info} 测试路由 到 ${ISP_name} 完成 ！"
 
 	repeat_test_alternative
@@ -178,7 +178,7 @@ test_all(){
 result_all(){
 	ISP_name=$2
 	echo -e "${Info} 测试路由 到 ${ISP_name} 中 ..."
-	./besttrace -q 1 -g cn $1
+	./besttrace -q 1 cn $1
 	echo -e "${Info} 测试路由 到 ${ISP_name} 完成 ！"
 }
 
