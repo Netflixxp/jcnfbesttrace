@@ -13,7 +13,7 @@
  
 下载脚本并直接运行
 ````
-wget -O jcnf.sh https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcnf.sh && bash jcnf.sh
+wget -O jcnf.sh https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcnf.sh && chmod +x jcnf.sh && clear &&./jcnf.sh
 ````
 运行脚本（再次检查仅需运行下面代码）
 
