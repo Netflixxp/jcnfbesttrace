@@ -28,7 +28,7 @@ check_root(){
 	[[ "`id -u`" != "0" ]] && echo -e "${Error} must be root user !" && exit 1
 }
 directory(){
-	[[ ! -d /home/testrace ]] && mkdir -p /home/testrace
+	[[ ! -d /home/testrace ]] && rm -rf /home/testrace && mkdir -p /home/testrace
 	cd /home/testrace
 }
 install(){
