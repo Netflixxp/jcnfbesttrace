@@ -28,13 +28,13 @@ check_root(){
 	[[ "`id -u`" != "0" ]] && echo -e "${Error} must be root user !" && exit 1
 }
 directory(){
-	rm -rf /home/testrace && mkdir -p /home/testrace
-	cd /home/testrace
+	[[ ! -d /home/tstrace ]] mkdir -p /home/tstrace
+	cd /home/tstrace
 }
 install(){
-	[[ ! -d /home/testrace/besttrace ]] && wget -O BestTrace.tar.gz https://github.com/Netflixxp/jcnfbesttrace/releases/download/v0303/BestTrace.tar.gz && tar -zxf BestTrace.tar.gz && rm BestTrace.tar.gz
-	[[ ! -d /home/testrace/besttrace ]] && echo -e "${Error} download failed, please check!" && exit 1
-	chmod -R +x /home/testrace
+	[[ ! -d /home/tstrace/besttrace ]] && wget -O BestTrace.tar.gz https://github.com/Netflixxp/jcnfbesttrace/releases/download/v0303/BestTrace.tar.gz && tar -zxf BestTrace.tar.gz && rm BestTrace.tar.gz
+	[[ ! -d /home/tstrace/besttrace ]] && echo -e "${Error} download failed, please check!" && exit 1
+	chmod -R +x /home/tstrace
 }
 
 
@@ -49,7 +49,7 @@ test_single(){
 			echo -e "${Info} 请重新输入" && read -p "输入 ip 地址:" ip
 		done
 
-	./besttrace -q1 -g cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
+	./besttrace -q1 -g cn ${ip} | tee -a -i /home/tstrace/tstrace.log 2>/dev/null
 
 	repeat_test_single
 }
@@ -143,7 +143,7 @@ node_4(){
 }
 result_alternative(){
 	echo -e "${Info} 测试路由 到 ${ISP_name} 中 ..."
-	./besttrace -q1 -g cn ${ip} | tee -a -i /home/testrace/testrace.log 2>/dev/null
+	./besttrace -q1 -g cn ${ip} | tee -a -i /home/tstrace/tstrace.log 2>/dev/null
 	echo -e "${Info} 测试路由 到 ${ISP_name} 完成 ！"
 
 	repeat_test_alternative
@@ -214,7 +214,7 @@ read -p "输入数字以选择:" function
 	if [[ "${function}" == "1" ]]; then
 		test_alternative
 	elif [[ "${function}" == "2" ]]; then
-		test_all | tee -a -i /home/testrace/testrace.log 2>/dev/null
+		test_all | tee -a -i /home/tstrace/tstrace.log 2>/dev/null
 	else
 		test_single
 	fi
