@@ -32,11 +32,9 @@ directory(){
 	cd /home/tstrace
 }
 install(){
-	[[ ! -d /home/tstrace/besttrace ]] && git https://github.com/Netflixxp/jcnfbesttrace/releases/download/831/besttrace
-	[[ ! -d /home/tstrace/besttrace ]] && echo -e "${Error} download failed, please check!" && exit 1
+	[[ ! -d /home/tstrace/besttrace ]] && wget -O besttrace https://github.com/Netflixxp/jcnfbesttrace/releases/download/831/besttrace
 	chmod -R +x /home/tstrace
 }
-
 
 
 test_single(){
