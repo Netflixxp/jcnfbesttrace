@@ -32,7 +32,7 @@ directory(){
 	cd /home/tstrace
 }
 install(){
-	[[ ! -d /home/tstrace/besttrace ]] && wget -O BestTrace.tar.gz https://github.com/Netflixxp/jcnfbesttrace/releases/download/v0303/BestTrace.tar.gz && tar -zxf BestTrace.tar.gz && rm BestTrace.tar.gz
+	[[ ! -d /home/tstrace/besttrace ]] && wget -O https://github.com/Netflixxp/jcnfbesttrace/releases/download/831/besttrace
 	[[ ! -d /home/tstrace/besttrace ]] && echo -e "${Error} download failed, please check!" && exit 1
 	chmod -R +x /home/tstrace
 }
