@@ -197,7 +197,7 @@ check_system
 check_root
 directory
 install
-cd besttrace
+cd /home/tstrace
 
 echo -e "${Info} 选择你要使用的功能: "
 echo -e "1.选择一个运营商进行测试\n2.四网路由快速测试\n3.手动输入 ip 进行测试"
