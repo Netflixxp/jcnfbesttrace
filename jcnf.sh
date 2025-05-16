@@ -278,20 +278,27 @@ select_isp_and_node(){
     done
 
     local count=0
-    declare -a current_isp_node_options
+    declare -a current_isp_node_options # 存储当前ISP的节点选项
     echo -e "${Info} 可用节点:"
     for node_data in "${ISP_NODES[@]}"; do
+        # 注意：这里 IFS 的作用域仅限于 read 命令（在某些 shell 版本中），
+        # 或者如果用 < <(command) 的形式，则作用域更广。
+        # 为了安全，可以在循环外保存旧的IFS，循环内设置，循环后恢复。
+        # 但对于简单的 <<< here-string，通常没问题。
+        local old_ifs="$IFS" # 保存旧的IFS
         IFS=';' read -r current_isp_code node_num node_name_val node_ip_val <<< "$node_data"
+        IFS="$old_ifs" # 恢复旧的IFS
+
         if [[ "$current_isp_code" == "$selected_isp_code" ]]; then
             count=$((count + 1))
             echo -e "${count}. ${node_name_val} (${node_ip_val})"
-            current_isp_node_options+=("${node_name_val};${node_ip_val}")
+            current_isp_node_options+=("${node_name_val};${node_ip_val}") # 存储名称和IP
         fi
     done
 
     if [ ${#current_isp_node_options[@]} -eq 0 ]; then
         echo -e "${Error} 没有为所选运营商找到配置的节点。"
-        return 1
+        return 1 # 表示选择失败
     fi
 
     read -p "输入数字以选择节点 (1-${count}), 或输入 'q' 返回上级菜单:" selected_node_index
@@ -303,9 +310,14 @@ select_isp_and_node(){
         if [[ "$selected_node_index" == "q" || "$selected_node_index" == "Q" ]]; then return 1; fi
     done
 
+    # 获取选择的节点信息
     local chosen_node_data="${current_isp_node_options[$((selected_node_index - 1))]}"
-    IFS=';' read-r ISP_name ip <<< "$chosen_node_data"
-    return 0
+    # --- 此处是修改点 ---
+    local old_ifs_final="$IFS" # 保存旧的IFS
+    IFS=';' read -r ISP_name ip <<< "$chosen_node_data" # 修正: read -r
+    IFS="$old_ifs_final" # 恢复旧的IFS
+    # --------------------
+    return 0 # 表示选择成功
 }
 
 result_alternative(){
