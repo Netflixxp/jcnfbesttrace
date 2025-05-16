@@ -59,7 +59,7 @@ check_system(){
         SYSTEM_ID="debian"; SYSTEM_ID_LIKE="debian"
     elif grep -qi "ubuntu" /etc/issue; then
         SYSTEM_ID="ubuntu"; SYSTEM_ID_LIKE="debian"
-    elif grep -qi "centos" /etc/issue; then
+    elif grep -qi "centos" /etc/issue; then # Very basic fallback
         SYSTEM_ID="centos"; SYSTEM_ID_LIKE="rhel fedora"
     else
         echo -e "${Error} 无法确定操作系统。" && exit 1
@@ -72,7 +72,8 @@ check_system(){
     if [[ "$SYSTEM_ID" == "debian" || "$SYSTEM_ID" == "ubuntu" || "$SYSTEM_ID_LIKE" == *"debian"* ]]; then
         pkg_manager_update="apt-get update -qq"
         pkg_manager_install="apt-get install -y -qq"
-    elif [[ "$SYSTEM_ID" == "centos" || "$SYSTEM_ID" == "rhel" || "$SYSTEM_ID" == "fedora" || "$SYSTEM_ID" == "almalinux" || "$SYSTEM_ID" == "rocky" || "$SYSTEM_ID_LIKE" == *"rhel"* || "$SYSTEM_ID_LIKE" == *"fedora"* ]]; pkgs_to_install="${pkgs_to_install//unzip/unzip tar gzip}"; # RHEL系可能需要 tar, gzip 处理其他类型的压缩包，unzip一般也有
+    elif [[ "$SYSTEM_ID" == "centos" || "$SYSTEM_ID" == "rhel" || "$SYSTEM_ID" == "fedora" || "$SYSTEM_ID" == "almalinux" || "$SYSTEM_ID" == "rocky" || "$SYSTEM_ID_LIKE" == *"rhel"* || "$SYSTEM_ID_LIKE" == *"fedora"* ]]; then # <<<--- FIX: Added 'then' here
+        pkgs_to_install="${pkgs_to_install//unzip/unzip tar gzip}" # RHEL系可能需要 tar, gzip 处理其他类型的压缩包，unzip一般也有
         pkg_manager_install="yum install -y -q" # yum 通常不需要单独 update
     else
         echo -e "${Error} 系统 ${SYSTEM_ID} 不被此自动安装脚本支持！"
@@ -238,13 +239,23 @@ repeat_test_single(){
         echo -e "${Error} 输入无效！" && read -p "请重新输入:" whether_repeat_single
     done
     [[ "${whether_repeat_single}" == "1" ]] && test_single
-    [[ "${whether_repeat_single}" == "2" ]] && echo -e "${Info} 退出脚本..." && exit 0
+    [[ "${whether_repeat_single}" == "2" ]] && echo -e "${Info} 返回主菜单..."
 }
 
 
 test_alternative(){
+    # 清除上次选择，避免影响
+    ISP=""
+    ip=""
+    ISP_name=""
     select_isp_and_node
-    result_alternative
+    # select_isp_and_node 会设置全局的 ip 和 ISP_name
+    # 如果用户在select_isp_and_node中没有有效选择 (例如配置文件问题或取消)，ip可能为空
+    if [[ -n "$ip" && -n "$ISP_name" ]]; then
+        result_alternative
+    else
+        echo -e "${Warning} 未选择有效的测试节点，返回主菜单。"
+    fi
 }
 
 select_isp_and_node(){
@@ -261,8 +272,8 @@ select_isp_and_node(){
     declare -a current_isp_node_options # 存储当前ISP的节点选项
     echo -e "${Info} 可用节点:"
     for node_data in "${ISP_NODES[@]}"; do
-        IFS=';' read -r isp_code node_num node_name_val node_ip_val <<< "$node_data"
-        if [[ "$isp_code" == "$selected_isp_code" ]]; then
+        IFS=';' read -r current_isp_code node_num node_name_val node_ip_val <<< "$node_data"
+        if [[ "$current_isp_code" == "$selected_isp_code" ]]; then
             count=$((count + 1))
             echo -e "${count}. ${node_name_val} (${node_ip_val})"
             current_isp_node_options+=("${node_name_val};${node_ip_val}") # 存储名称和IP
@@ -271,7 +282,6 @@ select_isp_and_node(){
 
     if [ ${#current_isp_node_options[@]} -eq 0 ]; then
         echo -e "${Error} 没有为所选运营商找到配置的节点。"
-        # 可以选择返回主菜单或退出
         return 1 # 表示选择失败
     fi
 
@@ -284,13 +294,19 @@ select_isp_and_node(){
     # selected_node_index 是基于1的，数组索引是基于0的
     local chosen_node_data="${current_isp_node_options[$((selected_node_index - 1))]}"
     IFS=';' read-r ISP_name ip <<< "$chosen_node_data" # 设置全局变量
+    # ISP 变量 (大写的) 可以根据 selected_isp_code 来设置，如果需要的话
+    # 例如：
+    # case "$selected_isp_code" in
+    #     1) ISP="中国电信" ;;
+    #     2) ISP="中国联通" ;;
+    #     3) ISP="中国移动" ;;
+    #     4) ISP="教育网" ;;
+    # esac
+    return 0 # 表示选择成功
 }
 
 result_alternative(){
-    if [[ -z "$ip" || -z "$ISP_name" ]]; then
-        echo -e "${Warning} 未选择有效的测试节点。返回主菜单。"
-        return
-    fi
+    # ip 和 ISP_name 应该已经被 select_isp_and_node 设置
     echo -e "${Info} 正在测试路由到 ${ISP_name} (${ip}) ..."
     ./${BESTTRACE_EXE_NAME} -q1 -g cn "${ip}" | tee -a -i "${WORKDIR}/tstrace.log"
     echo -e "${Info} 到 ${ISP_name} 的路由测试完成！"
@@ -305,7 +321,6 @@ repeat_test_alternative(){
         echo -e "${Error} 输入无效！" && read -p "请重新输入:" whether_repeat_alternative
     done
     [[ "${whether_repeat_alternative}" == "1" ]] && test_alternative
-    # 如果选2，则不执行任何操作，函数结束，控制权返回到主循环
     [[ "${whether_repeat_alternative}" == "2" ]] && echo -e "${Info} 返回主菜单..."
 }
 
@@ -320,21 +335,27 @@ result_all_helper(){
 
 test_all(){
     echo -e "${Info} 开始四网路由快速测试 (选取各ISP的第一个配置节点)..."
-    local tested_isps=() # 用于跟踪已测试的ISP代码
-    local nodes_to_test=()
+    local tested_isps_codes=() # 用于跟踪已测试的ISP代码 (1, 2, 3, 4)
+    local nodes_to_test=()     # 存储 IP;Name
 
     for node_data in "${ISP_NODES[@]}"; do
         IFS=';' read -r isp_code_val _ node_name_val node_ip_val <<< "$node_data"
-        is_already_added=0
-        for tested_isp_code in "${tested_isps[@]}"; do
-            if [[ "$tested_isp_code" == "$isp_code_val" ]]; then
-                is_already_added=1
+        
+        is_already_added_for_this_isp_code=0
+        for tested_code in "${tested_isps_codes[@]}"; do
+            if [[ "$tested_code" == "$isp_code_val" ]]; then
+                is_already_added_for_this_isp_code=1
                 break
             fi
         done
-        if [[ "$is_already_added" -eq 0 ]]; then
+
+        if [[ "$is_already_added_for_this_isp_code" -eq 0 ]]; then
             nodes_to_test+=("${node_ip_val};${node_name_val}")
-            tested_isps+=("$isp_code_val")
+            tested_isps_codes+=("$isp_code_val")
+        fi
+        # 如果已经为所有4种ISP类型找到了节点，可以提前退出循环
+        if [ ${#tested_isps_codes[@]} -ge 4 ]; then
+            break
         fi
     done
     
@@ -374,9 +395,12 @@ main(){
             2) test_all | tee -a -i "${WORKDIR}/tstrace.log" ;;
             3) test_single ;;
             4) load_isp_config ;;
-            5) echo -e "${Info} 退出脚本..." ; exit 0 ;;
+            5) echo -e "${Info} 正在退出脚本..." ; exit 0 ;;
             *) echo -e "${Error} 输入无效或缺失！请重新选择。" ;;
         esac
+        # 清理可能残留的全局变量，以防影响下一次选择（特别是 test_alternative）
+        ip=""
+        ISP_name=""
     done
 }
 
