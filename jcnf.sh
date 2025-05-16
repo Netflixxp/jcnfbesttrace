@@ -145,22 +145,36 @@ load_isp_config() {
         exit 1 # 下载失败则直接退出
     fi
 
-    # 确认文件已下载 (理论上 wget 成功后文件必然存在)
     if [[ ! -f "${config_path_in_workdir}" ]]; then
         echo -e "${Error} ISP节点配置文件 ${ISP_CONFIG_FILE_NAME} 下载后仍未找到！这是一个意外错误。"
         exit 1
     fi
 
-    # ... 后续的加载逻辑不变 ...
     echo -e "${Info} 正在从 ${config_path_in_workdir} 加载节点配置..."
     ISP_NODES=()
     while IFS=';' read -r isp_code node_num node_name_val node_ip_val || [[ -n "$isp_code" ]]; do
-        # ... (内容解析) ...
-    done < "${config_path_in_workdir}"
-    # ... (检查节点数量) ...
+        isp_code=$(echo "$isp_code" | tr -d '\r' | sed 's/^\xEF\xBB\xBF//')
+        node_name_val=$(echo "$node_name_val" | tr -d '\r')
+        node_ip_val=$(echo "$node_ip_val" | tr -d '\r')
+
+        # 修改点：将单行 if 改为多行
+        if [[ -z "$isp_code" || "$isp_code" == \#* ]]; then
+            continue
+        fi
+
+        if [[ ! "$isp_code" =~ ^[1-4]$ || ! "$node_num" =~ ^[0-9]+$ || -z "$node_name_val" || -z "$node_ip_val" ]]; then
+            echo -e "${Warning} 配置文件中发现无效行: ${isp_code};${node_num};${node_name_val};${node_ip_val} (已跳过)"
+            continue
+        fi
+        ISP_NODES+=("${isp_code};${node_num};${node_name_val};${node_ip_val}")
+    done < "${config_path_in_workdir}" # 错误行
+
+    if [ ${#ISP_NODES[@]} -eq 0 ]; then
+        echo -e "${Error} ISP节点配置文件为空或格式不正确！"
+        exit 1
+    fi
     echo -e "${Info} ISP节点配置加载完成，共 ${#ISP_NODES[@]} 个节点。"
 }
-
 
 install_nexttrace(){
     echo -e "${Info} 正在检查并准备 NextTrace 工具..."
