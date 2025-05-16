@@ -132,48 +132,47 @@ setup_directory(){
 
 load_isp_config() {
     echo -e "${Info} 正在准备并获取最新的ISP节点配置文件: ${ISP_CONFIG_FILE_NAME}"
-    local config_path_in_workdir="${WORKDIR}/${ISP_CONFIG_FILE_NAME}"
+    local config_path_in_workdir="${WORKDIR}/${ISP_CONFIG_FILE_NAME}" # 132
 
-    echo -e "${Info} 尝试从 ${ISP_CONFIG_DOWNLOAD_URL} 下载最新的配置文件到 ${config_path_in_workdir}..."
+    echo -e "${Info} 尝试从 ${ISP_CONFIG_DOWNLOAD_URL} 下载最新的配置文件到 ${config_path_in_workdir}..." #134
 
-    if wget -q -O "${config_path_in_workdir}" "${ISP_CONFIG_DOWNLOAD_URL}"; then
-        echo -e "${Info} ${ISP_CONFIG_FILE_NAME} 下载/更新成功。"
-    else
-        echo -e "${Error} 下载最新的 ${ISP_CONFIG_FILE_NAME} 失败！"
-        echo -e "${Info} 请确保下载链接 ${ISP_CONFIG_DOWNLOAD_URL} 正确且可访问。"
-        echo -e "${Error} 无法获取最新配置文件，脚本无法继续。"
-        exit 1 # 下载失败则直接退出
-    fi
+    if wget -q -O "${config_path_in_workdir}" "${ISP_CONFIG_DOWNLOAD_URL}"; then #136
+        echo -e "${Info} ${ISP_CONFIG_FILE_NAME} 下载/更新成功。" #137
+    else #138
+        echo -e "${Error} 下载最新的 ${ISP_CONFIG_FILE_NAME} 失败！" #139
+        echo -e "${Info} 请确保下载链接 ${ISP_CONFIG_DOWNLOAD_URL} 正确且可访问。" #140
+        echo -e "${Error} 无法获取最新配置文件，脚本无法继续。" #141
+        exit 1 # 下载失败则直接退出 #142
+    fi #143
 
-    if [[ ! -f "${config_path_in_workdir}" ]]; then
-        echo -e "${Error} ISP节点配置文件 ${ISP_CONFIG_FILE_NAME} 下载后仍未找到！这是一个意外错误。"
-        exit 1
-    fi
+    if [[ ! -f "${config_path_in_workdir}" ]]; then #145
+        echo -e "${Error} ISP节点配置文件 ${ISP_CONFIG_FILE_NAME} 下载后仍未找到！这是一个意外错误。" #146
+        exit 1 #147
+    fi #148
 
-    echo -e "${Info} 正在从 ${config_path_in_workdir} 加载节点配置..."
-    ISP_NODES=()
-    while IFS=';' read -r isp_code node_num node_name_val node_ip_val || [[ -n "$isp_code" ]]; do
-        isp_code=$(echo "$isp_code" | tr -d '\r' | sed 's/^\xEF\xBB\xBF//')
-        node_name_val=$(echo "$node_name_val" | tr -d '\r')
-        node_ip_val=$(echo "$node_ip_val" | tr -d '\r')
+    echo -e "${Info} 正在从 ${config_path_in_workdir} 加载节点配置..." #150
+    ISP_NODES=() #151
+    while IFS=';' read -r isp_code node_num node_name_val node_ip_val || [[ -n "$isp_code" ]]; do #152
+        isp_code=$(echo "$isp_code" | tr -d '\r' | sed 's/^\xEF\xBB\xBF//') #153
+        node_name_val=$(echo "$node_name_val" | tr -d '\r') #154
+        node_ip_val=$(echo "$node_ip_val" | tr -d '\r') #155
 
-        # 修改点：将单行 if 改为多行
-        if [[ -z "$isp_code" || "$isp_code" == \#* ]]; then
-            continue
-        fi
+        if [[ -z "$isp_code" || "$isp_code" == \#* ]]; then #156
+            continue #157
+        fi #158
 
-        if [[ ! "$isp_code" =~ ^[1-4]$ || ! "$node_num" =~ ^[0-9]+$ || -z "$node_name_val" || -z "$node_ip_val" ]]; then
-            echo -e "${Warning} 配置文件中发现无效行: ${isp_code};${node_num};${node_name_val};${node_ip_val} (已跳过)"
-            continue
-        fi
-        ISP_NODES+=("${isp_code};${node_num};${node_name_val};${node_ip_val}")
-    done < "${config_path_in_workdir}" # 错误行
+        if [[ ! "$isp_code" =~ ^[1-4]$ || ! "$node_num" =~ ^[0-9]+$ || -z "$node_name_val" || -z "$node_ip_val" ]]; then #160
+            echo -e "${Warning} 配置文件中发现无效行: ${isp_code};${node_num};${node_name_val};${node_ip_val} (已跳过)" #161
+            continue #162
+        fi #163
+        ISP_NODES+=("${isp_code};${node_num};${node_name_val};${node_ip_val}") #164
+    done < "${config_path_in_workdir}" # 这是你报告的错误行，但根据我的行号应该是165行附近
 
-    if [ ${#ISP_NODES[@]} -eq 0 ]; then
-        echo -e "${Error} ISP节点配置文件为空或格式不正确！"
-        exit 1
-    fi
-    echo -e "${Info} ISP节点配置加载完成，共 ${#ISP_NODES[@]} 个节点。"
+    if [ ${#ISP_NODES[@]} -eq 0 ]; then #167
+        echo -e "${Error} ISP节点配置文件为空或格式不正确！" #168
+        exit 1 #169
+    fi #170
+    echo -e "${Info} ISP节点配置加载完成，共 ${#ISP_NODES[@]} 个节点。" #171
 }
 
 install_nexttrace(){
