@@ -1,4 +1,7 @@
 # jcNextTrace - 基于 NextTrace 的网络路由追踪脚本
+[![作者](https://img.shields.io/badge/作者-jcnf--那坨-blue.svg)](https://ybfl.net)
+[![TG频道](https://img.shields.io/badge/TG频道-@mffjc-宗绿色.svg)](https://t.me/mffjc)
+[![TG交流群](https://img.shields.io/badge/TG交流群-点击加入-yellow.svg)](https://t.me/+TDz0jE2WcAvfgmLi)
 
 `jcNextTrace` 是一个 Bash 脚本，它封装了强大的路由追踪工具 [NextTrace](https://github.com/nxtrace/NTrace-core)，旨在提供一个用户友好的界面，用于测试到不同网络运营商和自定义 IP 地址的网络路径和延迟。
 
@@ -38,8 +41,6 @@
 ## 安装与使用
 
 ### 1. 下载脚本
-
-你可以通过以下命令下载脚本（请将 `<YOUR_SCRIPT_RAW_LINK>` 替换为你脚本在 GitHub 上的实际 Raw 链接）：
 
 ```bash
 wget -O jcNextTrace.sh https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/main/jcNextTrace.sh && chmod +x jcNextTrace.sh && ./jcNextTrace.sh
