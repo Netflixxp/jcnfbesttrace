@@ -10,7 +10,7 @@ ISP_CONFIG_FILE_NAME="isp_nodes.conf" # 只保留文件名
 ISP_CONFIG_DOWNLOAD_URL="https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/refs/heads/main/isp_nodes.conf"
 
 # besttrace 下载相关
-BESTTRACE_ZIP_URL="https://cdn.ipip.net/17mon/besttrace4linux.zip"
+BESTTRACE_ZIP_URL="https://github.com/Netflixxp/jcnfbesttrace/releases/download/0516/besttrace4linux.zip"
 BESTTRACE_ZIP_NAME="besttrace4linux.zip"
 BESTTRACE_EXE_NAME="besttrace"
 
