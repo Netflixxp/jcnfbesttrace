@@ -4,12 +4,15 @@
 # --- 配置 ---
 # 工作目录
 WORKDIR="/home/tstrace"
-# ISP节点配置文件名 (应与脚本在同一目录或提供完整路径)
-ISP_CONFIG_FILE="isp_nodes.conf"
+# ISP节点配置文件名
+ISP_CONFIG_FILE_NAME="isp_nodes.conf" # 只保留文件名
+# ISP节点配置文件的下载URL (如果本地不存在)
+ISP_CONFIG_DOWNLOAD_URL="https://raw.githubusercontent.com/Netflixxp/jcnfbesttrace/refs/heads/main/isp_nodes.conf"
+
 # besttrace 下载相关
 BESTTRACE_ZIP_URL="https://cdn.ipip.net/17mon/besttrace4linux.zip"
 BESTTRACE_ZIP_NAME="besttrace4linux.zip"
-BESTTRACE_EXE_NAME="besttrace" # 解压后可执行文件的名字，可能因版本变化，需确认
+BESTTRACE_EXE_NAME="besttrace"
 
 # --- 颜色和输出定义 ---
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
@@ -27,8 +30,8 @@ declare ISP ip ISP_name # 用于存储用户选择的ISP和节点信息
 echo_header(){
     echo -e "${Green_font}
 #======================================
-# Project: jctestrace (外部IP配置版)
-# Version: 0.0.3
+# Project: jctestrace (外部IP配置版 - 自动下载配置)
+# Version: 0.0.4
 # Blog:   https://ybfl.xyz
 # Github: https://github.com/Netflixxp (原始项目)
 #======================================
@@ -65,23 +68,28 @@ check_system(){
         echo -e "${Error} 无法确定操作系统。" && exit 1
     fi
 
-    local pkgs_to_install="traceroute mtr unzip"
+    local pkgs_to_install="traceroute mtr unzip wget" # 确保 wget 也在检查列表
     local pkg_manager_update=""
     local pkg_manager_install=""
 
     if [[ "$SYSTEM_ID" == "debian" || "$SYSTEM_ID" == "ubuntu" || "$SYSTEM_ID_LIKE" == *"debian"* ]]; then
         pkg_manager_update="apt-get update -qq"
         pkg_manager_install="apt-get install -y -qq"
-    elif [[ "$SYSTEM_ID" == "centos" || "$SYSTEM_ID" == "rhel" || "$SYSTEM_ID" == "fedora" || "$SYSTEM_ID" == "almalinux" || "$SYSTEM_ID" == "rocky" || "$SYSTEM_ID_LIKE" == *"rhel"* || "$SYSTEM_ID_LIKE" == *"fedora"* ]]; then # <<<--- FIX: Added 'then' here
-        pkgs_to_install="${pkgs_to_install//unzip/unzip tar gzip}" # RHEL系可能需要 tar, gzip 处理其他类型的压缩包，unzip一般也有
-        pkg_manager_install="yum install -y -q" # yum 通常不需要单独 update
+    elif [[ "$SYSTEM_ID" == "centos" || \
+            "$SYSTEM_ID" == "rhel" || \
+            "$SYSTEM_ID" == "fedora" || \
+            "$SYSTEM_ID" == "almalinux" || \
+            "$SYSTEM_ID" == "rocky" || \
+            "$SYSTEM_ID_LIKE" == *"rhel"* || \
+            "$SYSTEM_ID_LIKE" == *"fedora"* ]]; then
+        pkgs_to_install="${pkgs_to_install//unzip/unzip tar gzip wget}"
+        pkg_manager_install="yum install -y -q"
     else
         echo -e "${Error} 系统 ${SYSTEM_ID} 不被此自动安装脚本支持！"
-        echo -e "${Info} 请手动安装: traceroute, mtr, unzip 后重试。"
+        echo -e "${Info} 请手动安装: traceroute, mtr, unzip, wget 后重试。"
         exit 1
     fi
 
-    # 安装必要的包
     needs_install=0
     for pkg in $pkgs_to_install; do
         if ! check_command_exists "$pkg"; then
@@ -114,40 +122,61 @@ setup_directory(){
 }
 
 load_isp_config() {
-    echo -e "${Info} 正在加载ISP节点配置文件: ${ISP_CONFIG_FILE}"
-    local full_config_path="${WORKDIR}/${ISP_CONFIG_FILE}"
-    if [[ ! -f "${full_config_path}" ]]; then
-        # 尝试从脚本所在目录加载 (如果脚本不在WORKDIR中运行)
-        SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-        full_config_path="${SCRIPT_DIR}/${ISP_CONFIG_FILE}"
-        if [[ ! -f "${full_config_path}" ]]; then
-            echo -e "${Error} ISP节点配置文件 ${ISP_CONFIG_FILE} 未找到！"
-            echo -e "${Info} 请确保 ${ISP_CONFIG_FILE} 文件存在于脚本目录或 ${WORKDIR} 目录中。"
-            echo -e "${Info} 配置文件格式示例："
-            echo -e "${Info} 1;1;上海电信;1.2.3.4"
-            echo -e "${Info} 2;1;北京联通;5.6.7.8"
+    echo -e "${Info} 正在准备ISP节点配置文件: ${ISP_CONFIG_FILE_NAME}"
+    local config_path_in_workdir="${WORKDIR}/${ISP_CONFIG_FILE_NAME}"
+    local SCRIPT_DIR # Will be set if needed
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )" # Get script's own directory
+    local config_path_in_scriptdir="${SCRIPT_DIR}/${ISP_CONFIG_FILE_NAME}"
+
+    local effective_config_path=""
+
+    # 检查文件是否存在于工作目录或脚本目录
+    if [[ -f "${config_path_in_workdir}" ]]; then
+        effective_config_path="${config_path_in_workdir}"
+        echo -e "${Info} 在工作目录找到 ${ISP_CONFIG_FILE_NAME}。"
+    elif [[ -f "${config_path_in_scriptdir}" ]]; then
+        effective_config_path="${config_path_in_scriptdir}"
+        echo -e "${Info} 在脚本目录找到 ${ISP_CONFIG_FILE_NAME}。"
+    fi
+
+    # 如果文件不存在于任何已知位置，则尝试下载
+    if [[ -z "${effective_config_path}" ]]; then
+        echo -e "${Warning} ISP节点配置文件 ${ISP_CONFIG_FILE_NAME} 未在本地找到。"
+        echo -e "${Info} 尝试从 ${ISP_CONFIG_DOWNLOAD_URL} 下载..."
+        # 下载到工作目录
+        if wget -q -O "${config_path_in_workdir}" "${ISP_CONFIG_DOWNLOAD_URL}"; then
+            echo -e "${Info} ${ISP_CONFIG_FILE_NAME} 下载成功到 ${config_path_in_workdir}。"
+            effective_config_path="${config_path_in_workdir}"
+        else
+            echo -e "${Error} 下载 ${ISP_CONFIG_FILE_NAME} 失败！"
+            echo -e "${Info} 请确保下载链接 ${ISP_CONFIG_DOWNLOAD_URL} 正确且可访问，"
+            echo -e "${Info} 或者手动将 ${ISP_CONFIG_FILE_NAME} 放置于 ${WORKDIR} 或脚本目录。"
             exit 1
         fi
     fi
 
+    # 再次确认文件存在
+    if [[ ! -f "${effective_config_path}" ]]; then
+        echo -e "${Error} ISP节点配置文件 ${ISP_CONFIG_FILE_NAME} 最终仍未找到！"
+        exit 1
+    fi
+
+    echo -e "${Info} 正在从 ${effective_config_path} 加载节点配置..."
     # 清空旧数据
     ISP_NODES=()
-    # 读取配置文件，忽略空行和注释行
+    # 读取配置文件
     while IFS=';' read -r isp_code node_num node_name_val node_ip_val || [[ -n "$isp_code" ]]; do
-        # 去除可能的 BOM 和 回车符
         isp_code=$(echo "$isp_code" | tr -d '\r' | sed 's/^\xEF\xBB\xBF//')
         node_name_val=$(echo "$node_name_val" | tr -d '\r')
         node_ip_val=$(echo "$node_ip_val" | tr -d '\r')
 
-        if [[ -z "$isp_code" || "$isp_code" == \#* ]]; then
-            continue # 跳过空行和注释
-        fi
+        if [[ -z "$isp_code" || "$isp_code" == \#* ]]; then continue; fi
         if [[ ! "$isp_code" =~ ^[1-4]$ || ! "$node_num" =~ ^[0-9]+$ || -z "$node_name_val" || -z "$node_ip_val" ]]; then
             echo -e "${Warning} 配置文件中发现无效行: ${isp_code};${node_num};${node_name_val};${node_ip_val} (已跳过)"
             continue
         fi
         ISP_NODES+=("${isp_code};${node_num};${node_name_val};${node_ip_val}")
-    done < "${full_config_path}"
+    done < "${effective_config_path}"
 
     if [ ${#ISP_NODES[@]} -eq 0 ]; then
         echo -e "${Error} ISP节点配置文件为空或格式不正确！"
@@ -159,59 +188,56 @@ load_isp_config() {
 
 install_besttrace(){
     echo -e "${Info} 正在检查并准备 besttrace 工具..."
-    if [[ -f "${BESTTRACE_EXE_NAME}" && -x "${BESTTRACE_EXE_NAME}" ]]; then
-        echo -e "${Info} ${BESTTRACE_EXE_NAME} 已存在且可执行。"
+    # 检查 WORKDIR 下的 besttrace
+    if [[ -f "${WORKDIR}/${BESTTRACE_EXE_NAME}" && -x "${WORKDIR}/${BESTTRACE_EXE_NAME}" ]]; then
+        echo -e "${Info} ${BESTTRACE_EXE_NAME} 已在 ${WORKDIR} 且可执行。"
         return 0
     fi
 
-    echo -e "${Info} 正在下载 ${BESTTRACE_ZIP_NAME} 从 ${BESTTRACE_ZIP_URL} ..."
-    if ! wget -q -c -O "${BESTTRACE_ZIP_NAME}" "${BESTTRACE_ZIP_URL}"; then
+    echo -e "${Info} 正在下载 ${BESTTRACE_ZIP_NAME} 从 ${BESTTRACE_ZIP_URL} 到 ${WORKDIR}..."
+    if ! wget -q -c -O "${WORKDIR}/${BESTTRACE_ZIP_NAME}" "${BESTTRACE_ZIP_URL}"; then
         echo -e "${Error} 下载 ${BESTTRACE_ZIP_NAME} 失败。请检查网络或URL。"
-        rm -f "${BESTTRACE_ZIP_NAME}"
+        rm -f "${WORKDIR}/${BESTTRACE_ZIP_NAME}"
         exit 1
     fi
 
-    echo -e "${Info} 正在解压 ${BESTTRACE_ZIP_NAME}..."
-    # 清理旧的解压目录（如果存在）
-    rm -rf besttrace_temp_dir
-    mkdir besttrace_temp_dir
-    if ! unzip -q -o "${BESTTRACE_ZIP_NAME}" -d besttrace_temp_dir; then # -o: overwrite
+    echo -e "${Info} 正在解压 ${WORKDIR}/${BESTTRACE_ZIP_NAME}..."
+    local temp_dir_for_unzip="${WORKDIR}/besttrace_temp_dir"
+    rm -rf "${temp_dir_for_unzip}" # 清理旧的解压目录
+    mkdir -p "${temp_dir_for_unzip}"
+    if ! unzip -q -o "${WORKDIR}/${BESTTRACE_ZIP_NAME}" -d "${temp_dir_for_unzip}"; then
         echo -e "${Error} 解压 ${BESTTRACE_ZIP_NAME} 失败。"
-        rm -f "${BESTTRACE_ZIP_NAME}"
-        rm -rf besttrace_temp_dir
+        rm -f "${WORKDIR}/${BESTTRACE_ZIP_NAME}"
+        rm -rf "${temp_dir_for_unzip}"
         exit 1
     fi
 
-    # 查找 besttrace 可执行文件 (它可能在子目录中，也可能直接在根目录)
     local found_exe
-    found_exe=$(find besttrace_temp_dir -name "${BESTTRACE_EXE_NAME}" -type f -executable 2>/dev/null | head -n 1)
-    if [[ -z "$found_exe" ]]; then # 如果没有可执行的，尝试找任何同名文件
-        found_exe=$(find besttrace_temp_dir -name "${BESTTRACE_EXE_NAME}" -type f 2>/dev/null | head -n 1)
+    found_exe=$(find "${temp_dir_for_unzip}" -name "${BESTTRACE_EXE_NAME}" -type f -executable 2>/dev/null | head -n 1)
+    if [[ -z "$found_exe" ]]; then
+        found_exe=$(find "${temp_dir_for_unzip}" -name "${BESTTRACE_EXE_NAME}" -type f 2>/dev/null | head -n 1)
     fi
-
 
     if [[ -n "$found_exe" && -f "$found_exe" ]]; then
         echo -e "${Info} 找到 ${BESTTRACE_EXE_NAME} at ${found_exe}."
-        # 将其移动到当前工作目录 (WORKDIR) 并确保可执行
-        if ! mv "$found_exe" "./${BESTTRACE_EXE_NAME}"; then
+        if ! mv "$found_exe" "${WORKDIR}/${BESTTRACE_EXE_NAME}"; then
              echo -e "${Error} 移动 ${BESTTRACE_EXE_NAME} 失败。"
-             rm -f "${BESTTRACE_ZIP_NAME}"
-             rm -rf besttrace_temp_dir
+             rm -f "${WORKDIR}/${BESTTRACE_ZIP_NAME}"
+             rm -rf "${temp_dir_for_unzip}"
              exit 1
         fi
-        chmod +x "./${BESTTRACE_EXE_NAME}"
-        echo -e "${Info} ${BESTTRACE_EXE_NAME} 已准备就绪。"
+        chmod +x "${WORKDIR}/${BESTTRACE_EXE_NAME}"
+        echo -e "${Info} ${BESTTRACE_EXE_NAME} 已准备就绪于 ${WORKDIR}。"
     else
         echo -e "${Error} 在解压文件中未找到名为 ${BESTTRACE_EXE_NAME} 的可执行文件。"
         echo -e "${Info} 请检查解压后的文件结构或确认 ${BESTTRACE_EXE_NAME} 的正确名称。"
-        rm -f "${BESTTRACE_ZIP_NAME}"
-        rm -rf besttrace_temp_dir # 清理
+        rm -f "${WORKDIR}/${BESTTRACE_ZIP_NAME}"
+        rm -rf "${temp_dir_for_unzip}"
         exit 1
     fi
 
-    # 清理下载的zip包和临时解压目录
-    rm -f "${BESTTRACE_ZIP_NAME}"
-    rm -rf besttrace_temp_dir
+    rm -f "${WORKDIR}/${BESTTRACE_ZIP_NAME}"
+    rm -rf "${temp_dir_for_unzip}"
 }
 
 
@@ -226,8 +252,7 @@ test_single(){
         done
 
     echo -e "${Info} 正在测试到 ${target_ip} ..."
-    # 假设 ./besttrace 在当前路径 (WORKDIR)
-    ./${BESTTRACE_EXE_NAME} -q1 -g cn "${target_ip}" | tee -a -i "${WORKDIR}/tstrace.log"
+    "${WORKDIR}/${BESTTRACE_EXE_NAME}" -q1 -g cn "${target_ip}" | tee -a -i "${WORKDIR}/tstrace.log"
     repeat_test_single
 }
 
@@ -244,13 +269,13 @@ repeat_test_single(){
 
 
 test_alternative(){
-    # 清除上次选择，避免影响
     ISP=""
     ip=""
     ISP_name=""
-    select_isp_and_node
-    # select_isp_and_node 会设置全局的 ip 和 ISP_name
-    # 如果用户在select_isp_and_node中没有有效选择 (例如配置文件问题或取消)，ip可能为空
+    if ! select_isp_and_node; then # 如果选择失败 (例如没有节点)
+        echo -e "${Warning} 未选择有效的测试节点或操作取消，返回主菜单。"
+        return
+    fi
     if [[ -n "$ip" && -n "$ISP_name" ]]; then
         result_alternative
     else
@@ -261,54 +286,50 @@ test_alternative(){
 select_isp_and_node(){
     echo -e "${Info} 选择需要测速的目标网络:"
     echo -e "1. 中国电信\n2. 中国联通\n3. 中国移动\n4. 教育网"
-    read -p "输入数字以选择运营商 (1-4):" selected_isp_code
+    read -p "输入数字以选择运营商 (1-4), 或输入 'q' 返回主菜单:" selected_isp_code
+
+    if [[ "$selected_isp_code" == "q" || "$selected_isp_code" == "Q" ]]; then return 1; fi
 
     while [[ ! "${selected_isp_code}" =~ ^[1-4]$ ]]; do
-        echo -e "${Error} 无效输入！" && read -p "请重新选择运营商 (1-4):" selected_isp_code
+        echo -e "${Error} 无效输入！"
+        read -p "请重新选择运营商 (1-4), 或输入 'q' 返回主菜单:" selected_isp_code
+        if [[ "$selected_isp_code" == "q" || "$selected_isp_code" == "Q" ]]; then return 1; fi
     done
 
-    # 显示选定运营商的节点
     local count=0
-    declare -a current_isp_node_options # 存储当前ISP的节点选项
+    declare -a current_isp_node_options
     echo -e "${Info} 可用节点:"
     for node_data in "${ISP_NODES[@]}"; do
         IFS=';' read -r current_isp_code node_num node_name_val node_ip_val <<< "$node_data"
         if [[ "$current_isp_code" == "$selected_isp_code" ]]; then
             count=$((count + 1))
             echo -e "${count}. ${node_name_val} (${node_ip_val})"
-            current_isp_node_options+=("${node_name_val};${node_ip_val}") # 存储名称和IP
+            current_isp_node_options+=("${node_name_val};${node_ip_val}")
         fi
     done
 
     if [ ${#current_isp_node_options[@]} -eq 0 ]; then
         echo -e "${Error} 没有为所选运营商找到配置的节点。"
-        return 1 # 表示选择失败
+        return 1
     fi
 
-    read -p "输入数字以选择节点 (1-${count}):" selected_node_index
+    read -p "输入数字以选择节点 (1-${count}), 或输入 'q' 返回上级菜单:" selected_node_index
+    if [[ "$selected_node_index" == "q" || "$selected_node_index" == "Q" ]]; then return 1; fi
+
     while ! [[ "${selected_node_index}" =~ ^[0-9]+$ && "${selected_node_index}" -ge 1 && "${selected_node_index}" -le "${count}" ]]; do
-        echo -e "${Error} 无效输入！" && read -p "请重新选择节点 (1-${count}):" selected_node_index
+        echo -e "${Error} 无效输入！"
+        read -p "请重新选择节点 (1-${count}), 或输入 'q' 返回上级菜单:" selected_node_index
+        if [[ "$selected_node_index" == "q" || "$selected_node_index" == "Q" ]]; then return 1; fi
     done
 
-    # 获取选择的节点信息
-    # selected_node_index 是基于1的，数组索引是基于0的
     local chosen_node_data="${current_isp_node_options[$((selected_node_index - 1))]}"
-    IFS=';' read-r ISP_name ip <<< "$chosen_node_data" # 设置全局变量
-    # ISP 变量 (大写的) 可以根据 selected_isp_code 来设置，如果需要的话
-    # 例如：
-    # case "$selected_isp_code" in
-    #     1) ISP="中国电信" ;;
-    #     2) ISP="中国联通" ;;
-    #     3) ISP="中国移动" ;;
-    #     4) ISP="教育网" ;;
-    # esac
-    return 0 # 表示选择成功
+    IFS=';' read-r ISP_name ip <<< "$chosen_node_data"
+    return 0
 }
 
 result_alternative(){
-    # ip 和 ISP_name 应该已经被 select_isp_and_node 设置
     echo -e "${Info} 正在测试路由到 ${ISP_name} (${ip}) ..."
-    ./${BESTTRACE_EXE_NAME} -q1 -g cn "${ip}" | tee -a -i "${WORKDIR}/tstrace.log"
+    "${WORKDIR}/${BESTTRACE_EXE_NAME}" -q1 -g cn "${ip}" | tee -a -i "${WORKDIR}/tstrace.log"
     echo -e "${Info} 到 ${ISP_name} 的路由测试完成！"
     repeat_test_alternative
 }
@@ -329,35 +350,25 @@ result_all_helper(){
     local target_ip="$1"
     local current_isp_name="$2"
     echo -e "${Info} 测试路由 到 ${current_isp_name} (${target_ip}) 中 ..."
-    ./${BESTTRACE_EXE_NAME} -q1 -g cn "${target_ip}" # 输出将被 test_all 调用处的 tee 捕获
+    "${WORKDIR}/${BESTTRACE_EXE_NAME}" -q1 -g cn "${target_ip}"
     echo -e "${Info} 测试路由 到 ${current_isp_name} (${target_ip}) 完成 ！"
 }
 
 test_all(){
     echo -e "${Info} 开始四网路由快速测试 (选取各ISP的第一个配置节点)..."
-    local tested_isps_codes=() # 用于跟踪已测试的ISP代码 (1, 2, 3, 4)
-    local nodes_to_test=()     # 存储 IP;Name
+    local tested_isps_codes=()
+    local nodes_to_test=()
 
     for node_data in "${ISP_NODES[@]}"; do
         IFS=';' read -r isp_code_val _ node_name_val node_ip_val <<< "$node_data"
-        
         is_already_added_for_this_isp_code=0
         for tested_code in "${tested_isps_codes[@]}"; do
             if [[ "$tested_code" == "$isp_code_val" ]]; then
-                is_already_added_for_this_isp_code=1
-                break
-            fi
-        done
-
+                is_already_added_for_this_isp_code=1; break; fi; done
         if [[ "$is_already_added_for_this_isp_code" -eq 0 ]]; then
             nodes_to_test+=("${node_ip_val};${node_name_val}")
-            tested_isps_codes+=("$isp_code_val")
-        fi
-        # 如果已经为所有4种ISP类型找到了节点，可以提前退出循环
-        if [ ${#tested_isps_codes[@]} -ge 4 ]; then
-            break
-        fi
-    done
+            tested_isps_codes+=("$isp_code_val"); fi
+        if [ ${#tested_isps_codes[@]} -ge 4 ]; then break; fi; done
     
     if [ ${#nodes_to_test[@]} -eq 0 ]; then
         echo -e "${Warning} 配置文件中没有找到足够的节点进行四网测试。"
@@ -366,9 +377,7 @@ test_all(){
 
     for node_info in "${nodes_to_test[@]}"; do
          IFS=';' read -r current_ip current_name <<< "$node_info"
-         result_all_helper "${current_ip}" "${current_name}"
-    done
-
+         result_all_helper "${current_ip}" "${current_name}"; done
     echo -e "${Info} 四网路由快速测试已完成！"
 }
 
@@ -376,17 +385,17 @@ test_all(){
 main(){
     echo_header
     check_root
-    check_system
+    check_system # 确保 wget 已安装
     setup_directory # cd 到 WORKDIR
-    load_isp_config # 加载节点
+    load_isp_config # 会尝试下载 isp_nodes.conf 如果不存在
     install_besttrace # 安装 besttrace 到 WORKDIR
 
     while true; do
         echo -e "\n${Info} 选择你要使用的功能: "
-        echo -e "1. 选择一个运营商进行测试 (从 ${ISP_CONFIG_FILE} 加载)"
-        echo -e "2. 四网路由快速测试 (从 ${ISP_CONFIG_FILE} 选取代表节点)"
+        echo -e "1. 选择一个运营商进行测试 (从 ${ISP_CONFIG_FILE_NAME} 加载)"
+        echo -e "2. 四网路由快速测试 (从 ${ISP_CONFIG_FILE_NAME} 选取代表节点)"
         echo -e "3. 手动输入 IP 进行测试"
-        echo -e "4. 重新加载ISP配置文件 (${ISP_CONFIG_FILE})"
+        echo -e "4. 重新加载ISP配置文件 (${ISP_CONFIG_FILE_NAME})"
         echo -e "5. 退出脚本"
         read -p "输入数字以选择 (1-5): " function_choice
 
@@ -394,13 +403,11 @@ main(){
             1) test_alternative ;;
             2) test_all | tee -a -i "${WORKDIR}/tstrace.log" ;;
             3) test_single ;;
-            4) load_isp_config ;;
+            4) load_isp_config ;; # 重新加载，如果本地没有会再次尝试下载
             5) echo -e "${Info} 正在退出脚本..." ; exit 0 ;;
             *) echo -e "${Error} 输入无效或缺失！请重新选择。" ;;
         esac
-        # 清理可能残留的全局变量，以防影响下一次选择（特别是 test_alternative）
-        ip=""
-        ISP_name=""
+        ip=""; ISP_name="" # 清理全局变量
     done
 }
 
